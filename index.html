@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IronTrack Pro | Final Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        
+        .day-scroller {
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            gap: 0.75rem;
+            padding-bottom: 1rem;
+        }
+        .day-scroller::-webkit-scrollbar { display: none; }
+        .day-btn { scroll-snap-align: start; flex: 0 0 auto; }
+        
+        .active-day { 
+            background: #6366f1 !important; 
+            color: white !important; 
+            border-color: #818cf8 !important;
+            box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.5);
+        }
+
+        .input-dark { 
+            background: rgba(15, 23, 42, 0.8); 
+            border: 1px solid rgba(255,255,255,0.1); 
+            color: #fff; 
+            outline: none;
+        }
+        .input-dark:focus { border-color: #6366f1; }
+        
+        /* Chrome, Safari, Edge, Opera - hide arrows for timer inputs */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- Header -->
+    <nav class="glass sticky top-0 z-50 border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
+            <h1 class="text-xl font-extrabold tracking-tight text-indigo-400">IRON<span class="text-white">TRACK</span></h1>
+            
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-full border border-white/5">
+                    <i class="fas fa-tint text-blue-400 text-xs"></i>
+                    <span id="water-val" class="text-sm font-bold">0</span>
+                    <button onclick="addWater()" class="hover:text-blue-300 transition"><i class="fas fa-plus"></i></button>
+                </div>
+                <button onclick="toggleTimer()" class="w-10 h-10 flex items-center justify-center text-indigo-400 glass rounded-full hover:bg-indigo-500/20 transition">
+                    <i class="fas fa-clock"></i>
+                </button>
+                <button onclick="clearHistory()" class="w-10 h-10 flex items-center justify-center text-rose-500 glass rounded-full hover:bg-rose-500/20 transition">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 lg:py-10 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Sidebar -->
+        <aside class="lg:col-span-4 space-y-6">
+            <div class="glass p-6 rounded-3xl">
+                <div class="flex justify-between items-end mb-4">
+                    <div>
+                        <p class="text-xs text-slate-400 uppercase tracking-widest font-bold">Progress</p>
+                        <h3 id="prog-label" class="text-2xl font-black text-indigo-400">0%</h3>
+                    </div>
+                </div>
+                <div class="w-full bg-slate-900 rounded-full h-2 mb-6">
+                    <div id="prog-bar" class="bg-indigo-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <div class="h-32">
+                    <canvas id="mainChart"></canvas>
+                </div>
+            </div>
+
+            <div class="day-scroller lg:flex-col lg:overflow-visible">
+                <button onclick="renderWorkout('Monday')" class="day-btn px-6 py-4 rounded-2xl glass min-w-[120px] lg:w-full flex justify-between items-center">
+                    <span class="font-bold">Monday</span><span class="text-[10px] opacity-40">PUSH</span>
+                </button>
+                <button onclick="renderWorkout('Tuesday')" class="day-btn px-6 py-4 rounded-2xl glass min-w-[120px] lg:w-full flex justify-between items-center">
+                    <span class="font-bold">Tuesday</span><span class="text-[10px] opacity-40">PULL</span>
+                </button>
+                <button onclick="renderWorkout('Wednesday')" class="day-btn px-6 py-4 rounded-2xl glass min-w-[120px] lg:w-full flex justify-between items-center">
+                    <span class="font-bold">Wednesday</span><span class="text-[10px] opacity-40">LEGS</span>
+                </button>
+                <button onclick="renderWorkout('Thursday')" class="day-btn px-6 py-4 rounded-2xl glass min-w-[120px] lg:w-full flex justify-between items-center">
+                    <span class="font-bold">Thursday</span><span class="text-[10px] opacity-40">PUSH</span>
+                </button>
+                <button onclick="renderWorkout('Friday')" class="day-btn px-6 py-4 rounded-2xl glass min-w-[120px] lg:w-full flex justify-between items-center">
+                    <span class="font-bold">Friday</span><span class="text-[10px] opacity-40">PULL</span>
+                </button>
+                <button onclick="renderWorkout('Saturday')" class="day-btn px-6 py-4 rounded-2xl glass min-w-[120px] lg:w-full flex justify-between items-center">
+                    <span class="font-bold">Saturday</span><span class="text-[10px] opacity-40">LEGS</span>
+                </button>
+                <button onclick="renderWorkout('Sunday')" class="day-btn px-6 py-4 rounded-2xl glass min-w-[120px] lg:w-full flex justify-between items-center">
+                    <span class="font-bold text-rose-400">Sunday</span><span class="text-[10px] opacity-40">REST</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Workout Area -->
+        <div class="lg:col-span-8">
+            <div id="workout-card" class="glass rounded-[2.5rem] p-6 lg:p-10 border-indigo-500 min-h-[400px]">
+                <div id="workout-header"></div>
+                <div id="workout-list" class="mt-8 space-y-3"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Timer Modal -->
+    <div id="timer-modal" class="fixed inset-0 bg-slate-950/95 z-[100] hidden flex flex-col items-center justify-center p-4">
+        <div class="glass p-8 lg:p-12 rounded-[3rem] text-center max-w-sm w-full shadow-2xl border-indigo-500/30">
+            <p class="text-slate-400 uppercase tracking-widest text-[10px] mb-4">Rest Duration</p>
+            <div class="flex items-center justify-center gap-2 mb-8">
+                <input type="number" id="timer-min" value="01" min="0" max="59" class="bg-transparent text-6xl lg:text-7xl font-mono font-bold text-indigo-500 w-24 text-center outline-none border-b-2 border-indigo-500/20">
+                <span class="text-5xl font-mono font-bold text-indigo-500">:</span>
+                <input type="number" id="timer-sec" value="00" min="0" max="59" class="bg-transparent text-6xl lg:text-7xl font-mono font-bold text-indigo-500 w-24 text-center outline-none border-b-2 border-indigo-500/20">
+            </div>
+            <div class="flex gap-4">
+                <button onclick="startTimer()" id="timer-ctrl" class="flex-1 bg-indigo-600 py-5 rounded-3xl font-black transition active:scale-95">START</button>
+                <button onclick="toggleTimer()" class="flex-1 bg-slate-800 py-5 rounded-3xl font-black transition">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const workoutData = {
+            "Monday": { label: "Push Day", ex: ["Pushups (1x25)", "Flat Bench Press (3x8-10)", "Incline DB Press (3x10-12)", "Shoulder DB Press (3x10-12)", "Lateral Raises (3x15-20)", "Cable Flys (3x12-15)", "Overhead Tricep Ext (3x12-15)", "Triceps Rod Pushdown (3x12-15)", "Bench Dips (To failure)"] },
+            "Tuesday": { label: "Pull Day", ex: ["Bent-Over Barbell Rows (3x8-10)", "Lat Pull Down (3x10-12)", "V-Bar Pulldown (3x10-12)", "Single Arm DB Row (3x10)", "Face Pulls (3x15)", "Barbell Curls 21s (3 Sets)", "Hammer Curls (3x12)", "Concentration Curls (3x12)", "Forearm Wrist Curls (To failure)"] },
+            "Wednesday": { label: "Leg Day", ex: ["Weighted Squats (3x5-8)", "Leg Press (3x12-15)", "Leg Extension (3x15)", "Lying Leg Curls (3x15)", "Walking Lunges (3x12)", "Calf Raises (4x20)", "Free Squats (1x50)"] },
+            "Thursday": { label: "Push Day", ex: ["Pushups (1x25)", "Flat Bench Press (3x8-10)", "Incline DB Press (3x10-12)", "Shoulder DB Press (3x10-12)", "Lateral Raises (3x15-20)", "Cable Flys (3x12-15)", "Overhead Tricep Ext (3x12-15)", "Triceps Rod Pushdown (3x12-15)", "Bench Dips (To failure)"] },
+            "Friday": { label: "Pull Day", ex: ["Bent-Over Barbell Rows (3x8-10)", "Lat Pull Down (3x10-12)", "V-Bar Pulldown (3x10-12)", "Single Arm DB Row (3x10)", "Face Pulls (3x15)", "Barbell Curls 21s (3 Sets)", "Hammer Curls (3x12)", "Concentration Curls (3x12)", "Forearm Wrist Curls (To failure)"] },
+            "Saturday": { label: "Leg Day", ex: ["Weighted Squats (3x5-8)", "Leg Press (3x12-15)", "Leg Extension (3x15)", "Lying Leg Curls (3x15)", "Walking Lunges (3x12)", "Calf Raises (4x20)", "Free Squats (1x50)"] },
+            "Sunday": { label: "Rest Day", ex: ["Stretch & Recover", "Light Walk", "Hydrate"] }
+        };
+
+        let db = JSON.parse(localStorage.getItem('iron_final_v4')) || { history: {}, water: 0, logs: {}, points: {} };
+        let timer = null;
+
+        function init() {
+            const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+            document.getElementById('water-val').innerText = db.water || 0;
+            renderWorkout(today);
+            updateCharts();
+        }
+
+        function renderWorkout(day) {
+            const head = document.getElementById('workout-header');
+            const list = document.getElementById('workout-list');
+            const data = workoutData[day];
+            let done = 0;
+
+            head.innerHTML = `<h2 class="text-4xl lg:text-6xl font-black text-white">${day}</h2><p class="text-indigo-400 font-bold uppercase text-sm mt-2">${data.label}</p>`;
+
+            let html = "";
+            data.ex.forEach((ex, i) => {
+                const id = `${day}-${i}`;
+                const checked = db.history[id] ? 'checked' : '';
+                if(db.history[id]) done++;
+                html += `
+                    <div class="flex flex-col md:flex-row md:items-center p-4 rounded-3xl bg-slate-800/40 border border-white/5 gap-4">
+                        <div class="flex items-center gap-4 flex-1">
+                            <input type="checkbox" id="${id}" ${checked} onchange="toggle('${id}', '${day}')" class="w-6 h-6 rounded bg-slate-700 border-none text-indigo-500">
+                            <label for="${id}" class="text-sm font-semibold cursor-pointer ${checked ? 'line-through text-slate-500' : ''}">${ex}</label>
+                        </div>
+                        <input type="text" placeholder="Kg/Reps" value="${db.logs[id] || ''}" onblur="saveLog('${id}', this.value)" class="input-dark px-4 py-2 rounded-xl text-xs w-full md:w-32">
+                    </div>`;
+            });
+            list.innerHTML = html;
+            const perc = Math.round((done / data.ex.length) * 100);
+            document.getElementById('prog-bar').style.width = perc + "%";
+            document.getElementById('prog-label').innerText = perc + "%";
+            document.querySelectorAll('.day-btn').forEach(b => b.classList.toggle('active-day', b.innerText.includes(day)));
+        }
+
+        function toggle(id, day) {
+            db.history[id] = document.getElementById(id).checked;
+            const date = new Date().toISOString().split('T')[0];
+            if(!db.points[date]) db.points[date] = 0;
+            db.points[date] += db.history[id] ? 10 : -10;
+            save(); renderWorkout(day); updateCharts();
+        }
+
+        function saveLog(id, val) { db.logs[id] = val; save(); }
+        function addWater() { db.water = (db.water || 0) + 1; document.getElementById('water-val').innerText = db.water; save(); }
+        function toggleTimer() { document.getElementById('timer-modal').classList.toggle('hidden'); }
+        
+        function startTimer() {
+            const ctrl = document.getElementById('timer-ctrl');
+            const minIn = document.getElementById('timer-min');
+            const secIn = document.getElementById('timer-sec');
+            if(timer) { clearInterval(timer); timer = null; ctrl.innerText = "START"; minIn.disabled = secIn.disabled = false; return; }
+            let total = (parseInt(minIn.value) * 60) + parseInt(secIn.value);
+            if(isNaN(total) || total <= 0) return;
+            minIn.disabled = secIn.disabled = true; ctrl.innerText = "STOP";
+            timer = setInterval(() => {
+                total--;
+                minIn.value = Math.floor(total / 60).toString().padStart(2, '0');
+                secIn.value = (total % 60).toString().padStart(2, '0');
+                if(total <= 0) { clearInterval(timer); timer = null; ctrl.innerText = "START"; minIn.disabled = secIn.disabled = false; alert("Time's up!"); }
+            }, 1000);
+        }
+
+        function updateCharts() {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            const dates = [...Array(7)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - i); return d.toISOString().split('T')[0]; }).reverse();
+            if(window.ch) window.ch.destroy();
+            window.ch = new Chart(ctx, { type: 'line', data: { labels: dates.map(d => d.split('-')[2]), datasets: [{ data: dates.map(d => db.points[d] || 0), borderColor: '#6366f1', tension: 0.4, fill: true, backgroundColor: 'rgba(99, 102, 241, 0.1)', pointRadius: 0 }] }, options: { plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 9 } } } }, maintainAspectRatio: false } });
+        }
+
+        function save() { localStorage.setItem('iron_final_v4', JSON.stringify(db)); }
+        function clearHistory() { if(confirm("Wipe everything?")) { localStorage.clear(); location.reload(); } }
+
+        init();
+    </script>
+</body>
+</html>
